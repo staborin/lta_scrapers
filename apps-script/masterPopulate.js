@@ -31,6 +31,8 @@ function masterPopulate() {
   populateDylanU10_WL();
   populateSerge_WL();
 
+  SpreadsheetApp.flush();  // ensure all insert writes are committed before dashboards read
+
   populateDashboard();
   populateWLDashboard();
 

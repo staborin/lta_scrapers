@@ -131,13 +131,14 @@ function parseClosingWL(str) {
   return new Date(+m[3], +m[2] - 1, +m[1]);
 }
 
-// ─── Build tournament name → block index map from output sheet ───────────────
+// ─── Build tournament name|date → block index map from output sheet ──────────
 function buildBlockNameMap(sheet) {
   if (!sheet) return {};
   var map = {};
   for (var i = 0; i < WL_BLOCK_NAME_ROWS.length; i++) {
     var name = String(sheet.getRange(WL_BLOCK_NAME_ROWS[i], 1).getValue() || '').trim();
-    if (name) map[name.toLowerCase()] = i;
+    var dateStr = String(sheet.getRange(WL_BLOCK_NAME_ROWS[i] + 1, 1).getDisplayValue() || '').trim();
+    if (name) map[name.toLowerCase() + '|' + dateStr] = i;
   }
   return map;
 }
@@ -160,6 +161,7 @@ function writeSlotsWL(dbSheet, tourns, valueCol, outSheet1, outSheet2, playerNam
   var map1 = buildBlockNameMap(outSheet1);
   var map2 = buildBlockNameMap(outSheet2);
 
+  
   for (var i = 0; i < Math.min(tourns.length, 10); i++) {
     var t       = tourns[i];
     var slotRow = WL_SLOT_ROWS[i];
@@ -184,10 +186,11 @@ function writeSlotsWL(dbSheet, tourns, valueCol, outSheet1, outSheet2, playerNam
       blocksF     = SERGE_WL_BLOCKS_F;
     }
 
-    var blockIdx = targetMap[t.name.toLowerCase()];
+    var blockIdx = targetMap[t.name.toLowerCase() + '|' + t.dateStr];
     if (blockIdx !== undefined && blockIdx < blocksF.length) {
       pos = findPosWL(targetSheet, blocksF[blockIdx], playerName);
     }
+
 
     // Write labels and values
     var labelCol  = valueCol - 1;

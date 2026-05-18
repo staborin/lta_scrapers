@@ -14,19 +14,19 @@
 
 var DASH_SLOT_ROWS_DB = [5, 15, 25, 35, 45];
 
-var LUKA_BLOCKS_F_DB  = ['F5:F36',   'F49:F80',  'F93:F124', 'F137:F168', 'F181:F212'];
-var LUKA_BLOCKS_Q_DB  = ['Q5:Q36',   'Q49:Q80',  'Q93:Q124', 'Q137:Q168', 'Q181:Q212'];
+var LUKA_BLOCKS_F_DB  = ['F5:F64',   'F77:F136',  'F149:F208', 'F221:F280', 'F293:F352'];
+var LUKA_BLOCKS_Q_DB  = ['Q5:Q64',   'Q77:Q136',  'Q149:Q208', 'Q221:Q280', 'Q293:Q352'];
 var DU9_BLOCKS_F_DB   = ['F5:F64',   'F77:F136',  'F149:F208', 'F221:F280', 'F293:F352'];
-var DU10_BLOCKS_F_DB  = ['F5:F36',   'F49:F80',   'F93:F124',  'F137:F168', 'F181:F212'];
-var DU10_BLOCKS_Q_DB  = ['Q5:Q36',   'Q49:Q80',   'Q93:Q124',  'Q137:Q168', 'Q181:Q212'];
-var SERGE_BLOCKS_F_DB = ['F5:F54',   'F60:F116', 'F122:F178','F184:F240', 'F246:F302'];
-var SERGE_BLOCKS_Q_DB = ['Q5:Q54',   'Q60:Q116', 'Q122:Q178','Q184:Q240', 'Q246:Q302'];
+var DU10_BLOCKS_F_DB  = ['F5:F64',   'F77:F136',  'F149:F208', 'F221:F280', 'F293:F352'];
+var DU10_BLOCKS_Q_DB  = ['Q5:Q64',   'Q77:Q136',  'Q149:Q208', 'Q221:Q280', 'Q293:Q352'];
+var SERGE_BLOCKS_F_DB = ['F5:F64',   'F77:F136',  'F149:F208', 'F221:F280', 'F293:F352'];
+var SERGE_BLOCKS_Q_DB = ['Q5:Q64',   'Q77:Q136',  'Q149:Q208', 'Q221:Q280', 'Q293:Q352'];
 
 // Rows where tournament names are written in each output sheet (titleRow + 1)
-var LUKA_NAME_ROWS_DB   = [2, 46, 90, 134, 178];   // LUKA_U14, LUKA_U16
+var LUKA_NAME_ROWS_DB   = [2, 74, 146, 218, 290];   // LUKA_U14, LUKA_U16
 var DU9_NAME_ROWS_DB    = [2, 74, 146, 218, 290];   // DYLAN_U9
-var DU10_NAME_ROWS_DB   = [2, 46, 90, 134, 178];    // DYLAN_U10
-var SERGE_NAME_ROWS_DB  = [2, 57, 119, 181, 243];   // SERGE
+var DU10_NAME_ROWS_DB   = [2, 74, 146, 218, 290];   // DYLAN_U10
+var SERGE_NAME_ROWS_DB  = [2, 74, 146, 218, 290];   // SERGE
 
 function populateDashboard() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -77,7 +77,8 @@ function getUpcomingDB(tSheet, today) {
     var dateStr  = String(data[1][vc] || '').trim();
     var startTime = String(data[1][lc + 2] || '').trim();
     var event    = String(data[2][vc] || '').trim();
-    var status   = String(data[3][vc] || '').trim();
+    var status      = String(data[3][vc] || '').trim();
+    var closingDate = (lc + 2 < data[3].length) ? String(data[3][lc + 2] || '').trim() : '';
     var grade    = String(data[4][vc] || '').trim();
     var drawSize = String(data[5][vc] || '').trim();
     var url      = String(data[6][vc] || '').trim();
@@ -86,7 +87,7 @@ function getUpcomingDB(tSheet, today) {
     if (endDate < today) continue;
 
     result.push({ name: name, dateStr: dateStr, startTime: startTime, event: event,
-      status: status, grade: grade, drawSize: drawSize, url: url, endDate: endDate });
+      status: status, closingDate: closingDate, grade: grade, drawSize: drawSize, url: url, endDate: endDate });
   }
 
   result.sort(function(a, b) { return a.endDate - b.endDate; });
@@ -112,13 +113,14 @@ function findPosDB(sheet, rangeStr, playerName) {
   } catch(e) { return 'N/A'; }
 }
 
-// ─── Build tournament name → block index map from an output sheet ────────────
+// ─── Build tournament name|date → block index map from an output sheet ───────
 function buildBlockNameMapDB(sheet, nameRows, col) {
   if (!sheet) return {};
   var map = {};
   for (var i = 0; i < nameRows.length; i++) {
     var name = String(sheet.getRange(nameRows[i], col).getValue() || '').trim();
-    if (name) map[name.toLowerCase()] = i;
+    var date = String(sheet.getRange(nameRows[i] + 1, col).getDisplayValue() || '').trim();
+    if (name) map[(name + '|' + date).toLowerCase()] = i;
   }
   return map;
 }
@@ -144,7 +146,7 @@ function writeSlotsDB(dbSheet, tourns, valueCol, sheet14or9, sheet16or10, sheetU
   for (var i = 0; i < Math.min(tourns.length, 5); i++) {
     var t       = tourns[i];
     var slotRow = DASH_SLOT_ROWS_DB[i];
-    var tName   = t.name.toLowerCase();
+    var tName   = (t.name + '|' + t.dateStr).toLowerCase();
 
     var pos = 'N/A';
     if (playerKey === 'luka') {
@@ -194,9 +196,12 @@ function writeSlotsDB(dbSheet, tourns, valueCol, sheet14or9, sheet16or10, sheetU
       dbSheet.getRange(slotRow + r, labelCol).setValue(labels[r]);
       dbSheet.getRange(slotRow + r, valueCol).setValue(values[r]);
     }
-    // Write start time to the column after the date value
     if (t.startTime) {
       dbSheet.getRange(slotRow + 1, valueCol + 1).setValue(t.startTime);
+    }
+    // Write closing date to the column after the status value
+    if (t.closingDate) {
+      dbSheet.getRange(slotRow + 3, valueCol + 1).setValue(t.closingDate);
     }
   }
 }
