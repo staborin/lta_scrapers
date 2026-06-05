@@ -30,6 +30,7 @@ For (B):
 import os
 import re
 import json
+import base64
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
@@ -369,6 +370,24 @@ def refresh_entries(request):
 
     if request.method == "OPTIONS":
         return ("", 204, cors_headers)
+
+    # ── Serve .ics calendar file from base64-encoded query param ─────────────
+    if request.method == "GET":
+        ics_b64 = request.args.get("ics", "")
+        filename = request.args.get("filename", "tournament.ics")
+        if not ics_b64:
+            return ("Missing 'ics' parameter", 400, cors_headers)
+        try:
+            padded = ics_b64 + "=" * (-len(ics_b64) % 4)
+            ics_content = base64.urlsafe_b64decode(padded).decode("utf-8")
+        except Exception as e:
+            return (f"Invalid ics encoding: {e}", 400, cors_headers)
+        safe_filename = re.sub(r'[^A-Za-z0-9_.-]', '_', filename)[:100]
+        return (ics_content, 200, {
+            **cors_headers,
+            "Content-Type": "text/calendar; charset=utf-8",
+            "Content-Disposition": f'inline; filename="{safe_filename}"',
+        })
 
     if request.method != "POST":
         return (json.dumps({"status": "error", "message": "POST required"}),
