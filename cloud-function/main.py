@@ -406,6 +406,20 @@ def refresh_entries(request):
             return (json.dumps({"status": "error", "message": f"refreshAllEntries failed: {e}"}),
                     502, {**cors_headers, "Content-Type": "application/json"})
 
+    # ── Mark a tournament as added to calendar ───────────────────────────────
+    if body.get("action") == "markCalendarAdded":
+        identifier = (body.get("identifier") or "").strip()
+        if not identifier:
+            return (json.dumps({"status": "error", "message": "Missing 'identifier'"}),
+                    400, {**cors_headers, "Content-Type": "application/json"})
+        try:
+            result = post_to_webapp({"action": "markCalendarAdded", "identifier": identifier})
+            return (json.dumps(result),
+                    200, {**cors_headers, "Content-Type": "application/json"})
+        except Exception as e:
+            return (json.dumps({"status": "error", "message": f"markCalendarAdded failed: {e}"}),
+                    502, {**cors_headers, "Content-Type": "application/json"})
+
     # ── Single tournament refresh ────────────────────────────────────────────
     try:
         tournament_url = body["url"]
