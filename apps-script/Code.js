@@ -34,6 +34,12 @@ function doPost(e) {
       return jsonResponse({ status: 'ok', message: 'masterPopulate triggered' });
     }
 
+    // --- markCalendarAdded ---
+    if (body.action === 'markCalendarAdded') {
+      const result = markCalendarAdded(body.identifier);
+      return jsonResponse(result);
+    }
+
     const sheetName = body.sheet;
     const clearFirst = body.clearFirst !== false; // default true
     const startRow = body.startRow || 1;          // default row 1
