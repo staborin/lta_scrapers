@@ -607,14 +607,23 @@ def scrape_watchlist_tournament(page, url: str, event: str, player_name: str) ->
         try:
             raw_draw = extract_fact_sheet_value(page, event, "Proposed Draw Size")
             if raw_draw:
-                m = re.search(r"\d+", raw_draw)
-                tournament["draw_size"] = int(m.group(0)) if m else 16
+                nums = re.findall(r"\d+", raw_draw)
+                tournament["draw_size"] = max(int(n) for n in nums) if nums else 16
             else:
                 tournament["draw_size"] = 16
             print(f"  ✓ Draw size: {tournament['draw_size']}")
         except Exception as e:
             print(f"  ✗ Draw size error: {e}")
             tournament["draw_size"] = 16
+
+        # ── Venue ──────────────────────────────────────────────────────────
+        try:
+            raw_venue = extract_fact_sheet_value(page, event, "Venue")
+            tournament["venue"] = (raw_venue or "").split("\n")[0].strip()
+            print(f"  ✓ Venue: {tournament['venue']}" if tournament["venue"] else "  ✗ Venue not found")
+        except Exception as e:
+            print(f"  ✗ Venue error: {e}")
+            tournament["venue"] = ""
 
     except Exception as e:
         print(f"  ERROR scraping fact sheet: {e}")
@@ -818,6 +827,7 @@ def write_watchlist_to_sheet(tournaments: list, sheet_tab: str, logger: logging.
         col = t_idx * 3
 
         grid[0][col]     = f"Tournament: {t.get('name', '')}"
+        grid[0][col + 1] = t.get("venue", "")
         grid[1][col]     = "Date:"
         grid[1][col + 1] = t.get("date", "")
         grid[1][col + 2] = t.get("start_time", "")

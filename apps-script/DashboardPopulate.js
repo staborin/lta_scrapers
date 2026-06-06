@@ -74,6 +74,7 @@ function getUpcomingDB(tSheet, today) {
     if (!rawName) continue;
 
     var name     = rawName.replace(/^Tournament:\s*/i, '');
+    var venue    = String(data[0][vc] || '').trim();
     var dateStr  = String(data[1][vc] || '').trim();
     var startTime = String(data[1][lc + 2] || '').trim();
     var event    = String(data[2][vc] || '').trim();
@@ -86,7 +87,7 @@ function getUpcomingDB(tSheet, today) {
 
     if (endDate < today) continue;
 
-    result.push({ name: name, dateStr: dateStr, startTime: startTime, event: event,
+    result.push({ name: name, venue: venue, dateStr: dateStr, startTime: startTime, event: event,
       status: status, closingDate: closingDate, grade: grade, drawSize: drawSize, url: url, endDate: endDate });
   }
 
@@ -195,6 +196,10 @@ function writeSlotsDB(dbSheet, tourns, valueCol, sheet14or9, sheet16or10, sheetU
     for (var r = 0; r < 8; r++) {
       dbSheet.getRange(slotRow + r, labelCol).setValue(labels[r]);
       dbSheet.getRange(slotRow + r, valueCol).setValue(values[r]);
+    }
+    // Write venue to the column after the tournament name value
+    if (t.venue) {
+      dbSheet.getRange(slotRow, valueCol + 1).setValue(t.venue);
     }
     if (t.startTime) {
       dbSheet.getRange(slotRow + 1, valueCol + 1).setValue(t.startTime);

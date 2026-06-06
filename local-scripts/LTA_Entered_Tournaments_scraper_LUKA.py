@@ -53,6 +53,7 @@ def write_wide_to_sheet_via_webapp(tournaments, sheet_tab, clear_first, logger: 
     for t_idx, tournament in enumerate(tournaments):
         col = t_idx * 3
         grid[0][col] = f"Tournament: {tournament.get('name', '')}"
+        grid[0][col + 1] = tournament.get("venue", "")
         grid[1][col] = "Date:"
         grid[1][col + 1] = tournament.get("date", "")
         grid[1][col + 2] = tournament.get("start_time", "")
@@ -1220,6 +1221,15 @@ def scrape_tournament_details(page, tournament, scrape_entries=True):
             except Exception as e:
                 print(f"  ✗ Error extracting draw size: {e} — defaulting to 16")
                 tournament["draw_size"] = 16
+
+            # Venue (tournament-level field; first line only to drop trailing "Open in Maps" etc.)
+            try:
+                raw_venue = extract_fact_sheet_value(page, tournament["event"], "Venue")
+                tournament["venue"] = (raw_venue or "").split("\n")[0].strip()
+                print(f"  ✓ Venue: {tournament['venue']}" if tournament["venue"] else "  ✗ Venue not found")
+            except Exception as e:
+                print(f"  ✗ Error extracting venue: {e}")
+                tournament["venue"] = ""
 
             # Event date from Timings (scoped to the selected event)
             # Uses Start date + Timings to calculate the actual event dates
